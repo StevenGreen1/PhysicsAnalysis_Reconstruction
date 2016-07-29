@@ -16,30 +16,24 @@ from Logic.GridTools import *
 
 jobDescription = 'PhysicsAnalysis'
 
+pcla> dirac-ilc-find-in-FC /ilc JobDescription=PhysicsAnalysis Type=Sim DetectorModel=clic_ild_cdr Energy=1400 EvtType=ee_nunuqqqq
+
+
 eventsToSimulate = [
-                       { 'EventType': "ee_nunuww_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energies':  ['1400'] },
-                       { 'EventType': "ee_nunuzz_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energies':  ['1400'] }
+                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energies': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True}
+#                       { 'EventType': "ee_nunuzz_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energies':  ['1400'] }
                    ]
 
 #===== Second level user input =====
 
-detectorModel = 'clic_ild_cdr'
-reconstructionVariant = 'clic_ild_cdr'
-
-gearFile = 'TemplateSteering/' + detectorModel + '.gear'
-steeringTemplateFile = 'TemplateSteering/clic_ild_cdr_steering.xml' # Without ggHad
-#steeringTemplateFile = 'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml' # With ggHad
+gearFile = 'TemplateSteering/clic_ild_cdr.gear'
+#steeringTemplateFile = 'TemplateSteering/clic_ild_cdr_steering.xml' # Without ggHad
+steeringTemplateFile = 'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml' # With ggHad
 pandoraSettingsFile = 'PandoraSettings/PandoraSettingsMuon_Photon_fix.xml'
-
-# If applying overlay set this to true and point to relevant steering file 
-ggHadBackground = False
 
 ##############
 # Begin
 ##############
-
-if ggHadBackground:
-    reconstructionVariant += '_ggHadBkg'
 
 # Make local pandora settings file
 os.system('cp ' + pandoraSettingsFile + ' .')
@@ -55,126 +49,128 @@ steeringTemplateContent = base.read()
 base.close()
 
 # Start submission
-JobIdentificationString = jobDescription + '_Detector_Model_' + detectorModel + '_Reco_' + reconstructionVariant
-diracInstance = DiracILC(withRepo=True,repoLocation="%s.cfg" %( JobIdentificationString))
+diracInstance = DiracILC(withRepo=False) 
 
 for eventSelection in eventsToSimulate:
     eventType = eventSelection['EventType']
-    for energy in eventSelection['Energies']:
-        slcioFormat = 'MokkaSim_Detector_Model_' + detectorModel + '_' + eventType + '_' + str(energy) + 'GeV_GeneratorSerialNumber_(.*?)_(.*?)_(.*?).slcio'
-        slcioFilesToProcess = getSlcioFiles(jobDescription,detectorModel,energy,eventType)
+    detectorModel = eventSelection['DetectorModel']
+    reconstructionVariant = eventSelection['ReconstructionVariant']
+    ggHadBackground = eventSelection['ggHadBkg']
+    energy = eventSelection['Energy']
 
-        if not slcioFilesToProcess:
-            print 'No slcio files found.  Exiting job submission.'
-            sys.exit()
+    slcioFormat = 'MokkaSim_Detector_Model_' + detectorModel + '_' + eventType + '_' + str(energy) + 'GeV_GeneratorSerialNumber_(.*?)_(.*?)_(.*?).slcio'
+    slcioFilesToProcess = getSlcioFiles(jobDescription,detectorModel,energy,eventType)
 
-        for slcioFile in slcioFilesToProcess:
-            print 'Checking ' + eventType + ' ' + str(energy) + 'GeV jobs.  Detector model ' + detectorModel + '.  Reconstruction stage ' + reconstructionVariant + '.  Slcio file ' + slcioFile + '.'
-            slcioFileNoPath = os.path.basename(slcioFile)
+    if not slcioFilesToProcess:
+        print 'No slcio files found.  Exiting job submission.'
+        sys.exit()
 
-            inputSandbox = []
-            inputSandbox.append(pandoraSettingsFileLocal)
+    for slcioFile in slcioFilesToProcess:
+        print 'Checking ' + eventType + ' ' + str(energy) + 'GeV jobs.  Detector model ' + detectorModel + '.  Reconstruction stage ' + reconstructionVariant + '.  Slcio file ' + slcioFile + '.'
+        slcioFileNoPath = os.path.basename(slcioFile)
 
-            #########################
-            # Get info from file name
-            #########################
-            matchObj = re.match(slcioFormat, os.path.basename(slcioFile), re.M|re.I) # MokkaSim_Detector_Model_clic_ild_cdr_ee_nunuww_nunuqqqq_1400GeV_GeneratorSerialNumber_100_100_0.slcio 
-            generatorSerialNumber = 0
-            numberOfEventsInFile = 0
-            startEventNumber = 0 # In generator level, not reconstruction.  Start event for all reconstruction is 0.
-            if matchObj:
-                generatorSerialNumber = matchObj.group(1)
-                numberOfEventsInFile = matchObj.group(2)
-                startEventNumber = matchObj.group(3)
-            else:
-                print 'Wrong stdhep format.  Please check.'
-                continue
+        inputSandbox = []
+        inputSandbox.append(pandoraSettingsFileLocal)
 
-            #########################
-            # Modify Template
-            #########################
-            steeringTemplate = steeringTemplateContent
+        #########################
+        # Get info from file name
+        #########################
+        matchObj = re.match(slcioFormat, os.path.basename(slcioFile), re.M|re.I) # MokkaSim_Detector_Model_clic_ild_cdr_ee_nunuww_nunuqqqq_1400GeV_GeneratorSerialNumber_100_100_0.slcio 
+        generatorSerialNumber = 0
+        numberOfEventsInFile = 0
+        startEventNumber = 0 # In generator level, not reconstruction.  Start event for all reconstruction is 0.
+        if matchObj:
+            generatorSerialNumber = matchObj.group(1)
+            numberOfEventsInFile = matchObj.group(2)
+            startEventNumber = matchObj.group(3)
+        else:
+            print 'Wrong stdhep format.  Please check.'
+            continue
 
-            outputPath = '/' + jobDescription + '/MarlinJobs/Detector_Model_' + detectorModel + '/Reconstruction_Variant_' + reconstructionVariant + '/' + eventType + '/' + str(energy) + 'GeV'
-            recFileName = 'DetModel_' + detectorModel + '_RecoVar_' + reconstructionVariant + '_' + eventType + '_' + str(energy) + 'GeV_GenNumber_' + str(generatorSerialNumber) + '_' + str(numberOfEventsInFile) + '_' + str(startEventNumber) + '_REC.slcio'
-            dstFileName = 'DetModel_' + detectorModel + '_RecoVar_' + reconstructionVariant + '_' + eventType + '_' + str(energy) + 'GeV_GenNumber_' + str(generatorSerialNumber) + '_' + str(numberOfEventsInFile) + '_' + str(startEventNumber) + '_DST.slcio'
+        #########################
+        # Modify Template
+        #########################
+        steeringTemplate = steeringTemplateContent
 
-            outputFiles = []
-            outputFiles.append(recFileName)
-            outputFiles.append(dstFileName)
+        outputPath = '/' + jobDescription + '/MarlinJobs/Detector_Model_' + detectorModel + '/Reconstruction_Variant_' + reconstructionVariant + '/' + eventType + '/' + str(energy) + 'GeV'
+        recFileName = 'DetModel_' + detectorModel + '_RecoVar_' + reconstructionVariant + '_' + eventType + '_' + str(energy) + 'GeV_GenNumber_' + str(generatorSerialNumber) + '_' + str(numberOfEventsInFile) + '_' + str(startEventNumber) + '_REC.slcio'
+        dstFileName = 'DetModel_' + detectorModel + '_RecoVar_' + reconstructionVariant + '_' + eventType + '_' + str(energy) + 'GeV_GenNumber_' + str(generatorSerialNumber) + '_' + str(numberOfEventsInFile) + '_' + str(startEventNumber) + '_DST.slcio'
 
-            steeringTemplate = re.sub('OutputRecFile',recFileName,steeringTemplate)
-            steeringTemplate = re.sub('OutputDstFile',dstFileName,steeringTemplate)
-            steeringTemplate = re.sub('GearFile',gearFileLocal,steeringTemplate)
-            steeringTemplate = re.sub('InputSlcioFile',slcioFileNoPath,steeringTemplate)
-            steeringTemplate = re.sub('PandoraSettingsFile',pandoraSettingsFileLocal,steeringTemplate)
+        outputFiles = []
+        outputFiles.append(recFileName)
+        outputFiles.append(dstFileName)
 
-            #########################
-            # Write Template File
-            #########################
-            with open("MarlinSteering.steer" ,"w") as SteeringFile:
-                SteeringFile.write(steeringTemplate)
+        steeringTemplate = re.sub('OutputRecFile',recFileName,steeringTemplate)
+        steeringTemplate = re.sub('OutputDstFile',dstFileName,steeringTemplate)
+        steeringTemplate = re.sub('GearFile',gearFileLocal,steeringTemplate)
+        steeringTemplate = re.sub('InputSlcioFile',slcioFileNoPath,steeringTemplate)
+        steeringTemplate = re.sub('PandoraSettingsFile',pandoraSettingsFileLocal,steeringTemplate)
 
-            #########################
-            # Check output doesn't exist already
-            #########################
-            skipJob = False
-            for outputFile in outputFiles:
-                lfn = '/ilc/user/s/sgreen' + outputPath + '/' + outputFile
-                if doesFileExist(lfn):
-                    skipJob = True
+        #########################
+        # Write Template File
+        #########################
+        with open("MarlinSteering.steer" ,"w") as SteeringFile:
+            SteeringFile.write(steeringTemplate)
 
-            if skipJob:
-                continue
+        #########################
+        # Check output doesn't exist already
+        #########################
+        skipJob = False
+        for outputFile in outputFiles:
+            lfn = '/ilc/user/s/sgreen' + outputPath + '/' + outputFile
+            if doesFileExist(lfn):
+                skipJob = True
 
-            print 'Submitting ' + eventType + ' ' + str(energy) + 'GeV jobs.  Detector model ' + detectorModel + '.  Reconstruction stage ' + reconstructionVariant + '.  Slcio file ' + slcioFile + '.'  
+        if skipJob:
+            continue
 
-            #########################
-            # Setup Marlin Application
-            #########################
-            ma = Marlin()
-            ma.setVersion('v0111Prod')
-            ma.setSteeringFile('MarlinSteering.steer')
-            ma.setGearFile(gearFileLocal)
-            ma.setInputFile('lfn:' + slcioFile)
+        print 'Submitting ' + eventType + ' ' + str(energy) + 'GeV jobs.  Detector model ' + detectorModel + '.  Reconstruction stage ' + reconstructionVariant + '.  Slcio file ' + slcioFile + '.'  
 
-            #########################
-            # Setup Overlay Information
-            #########################
-            overlay = OverlayInput()
-            overlay.setMachine('clic_cdr')
-            overlay.setEnergy(1400.0)
-            overlay.setBXOverlay(60)
-            #overlay.setGGToHadInt(3.2) # When running at 3TeV
-            overlay.setGGToHadInt(1.3) # When running at 1.4TeV
-            overlay.setDetectorModel('CLIC_ILD_CDR')
-            overlay.setNbSigEvtsPerJob(100)
-            overlay.setBackgroundType('gghad')
+        #########################
+        # Setup Marlin Application
+        #########################
+        ma = Marlin()
+        ma.setVersion('v0111Prod')
+        ma.setSteeringFile('MarlinSteering.steer')
+        ma.setGearFile(gearFileLocal)
+        ma.setInputFile('lfn:' + slcioFile)
 
-            #########################
-            # Submit Job
-            #########################
-            jobDetailedName = jobDescription + '_DetModel_' + detectorModel + '_RecoVar_' + reconstructionVariant + '_' + eventType + '_' + str(energy) + 'GeV_GenNumber_' + str(generatorSerialNumber) + '_' +  str(numberOfEventsInFile) + '_' + str(startEventNumber)
+        #########################
+        # Setup Overlay Information
+        #########################
+        overlay = OverlayInput()
+        overlay.setMachine('clic_cdr')
+        overlay.setEnergy(1400.0)
+        overlay.setBXOverlay(60)
+        #overlay.setGGToHadInt(3.2) # When running at 3TeV
+        overlay.setGGToHadInt(1.3) # When running at 1.4TeV
+        overlay.setDetectorModel('CLIC_ILD_CDR')
+        overlay.setNbSigEvtsPerJob(100)
+        overlay.setBackgroundType('gghad')
 
-            job = UserJob()
-            job.setJobGroup(jobDescription)
-            job.setInputSandbox(inputSandbox) # Local files
-            job.setOutputSandbox(['*.log','*.gear','*.mac','*.steer','*.xml'])
-            job.setOutputData(outputFiles,OutputPath=outputPath) # On grid
-            job.setName(jobDetailedName)
-            job.setBannedSites(['LCG.IN2P3-CC.fr','LCG.IN2P3-IRES.fr','LCG.KEK.jp','OSG.PNNL.us','OSG.CIT.us','LCG.LAPP.fr'])
-            job.dontPromptMe()
+        #########################
+        # Submit Job
+        #########################
+        jobDetailedName = jobDescription + '_DetModel_' + detectorModel + '_RecoVar_' + reconstructionVariant + '_' + eventType + '_' + str(energy) + 'GeV_GenNumber_' + str(generatorSerialNumber) + '_' +  str(numberOfEventsInFile) + '_' + str(startEventNumber)
 
-            if ggHadBackground:
-                res = job.append(overlay)
+        job = UserJob()
+        job.setJobGroup(jobDescription)
+        job.setInputSandbox(inputSandbox) # Local files
+        job.setOutputSandbox(['*.log','*.gear','*.mac','*.steer','*.xml'])
+        job.setOutputData(outputFiles,OutputPath=outputPath) # On grid
+        job.setName(jobDetailedName)
+        job.setBannedSites(['LCG.IN2P3-CC.fr','LCG.IN2P3-IRES.fr','LCG.KEK.jp','OSG.PNNL.us','OSG.CIT.us','LCG.LAPP.fr'])
+        job.dontPromptMe()
 
-            res = job.append(ma)
+         if ggHadBackground:
+            res = job.append(overlay)
 
-            if not res['OK']:
-                print res['Message']
-                exit()
-            job.submit(diracInstance)
-            os.system('rm *.cfg')
+        res = job.append(ma)
+
+        if not res['OK']:
+            print res['Message']
+            exit()
+        job.submit(diracInstance)
 
 # Tidy Up
 os.system('rm MarlinSteering.steer')
