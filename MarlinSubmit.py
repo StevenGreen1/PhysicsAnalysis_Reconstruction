@@ -17,32 +17,13 @@ from Logic.GridTools import *
 jobDescription = 'PhysicsAnalysis'
 
 eventsToSimulate = [
-                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True}
+                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml'},
+                       { 'EventType': "ee_zz_tautauqq"  , 'EventsPerFile' : 1000 , 'Energy': 350 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr', 'ggHadBkg':False, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering.xml'}
                    ]
-
-#===== Second level user input =====
-
-gearFile = 'TemplateSteering/clic_ild_cdr.gear'
-#steeringTemplateFile = 'TemplateSteering/clic_ild_cdr_steering.xml' # Without ggHad
-steeringTemplateFile = 'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml' # With ggHad
-pandoraSettingsFile = 'PandoraSettings/PandoraSettingsMuon_Photon_fix.xml'
 
 ##############
 # Begin
 ##############
-
-# Make local pandora settings file
-os.system('cp ' + pandoraSettingsFile + ' .')
-pandoraSettingsFileLocal = os.path.basename(pandoraSettingsFile)
-
-# Make local gear file
-os.system('cp ' + gearFile + ' .')
-gearFileLocal = os.path.basename(gearFile)
-
-# Get content of template 
-base = open(steeringTemplateFile,'r')
-steeringTemplateContent = base.read()
-base.close()
 
 # Start submission
 diracInstance = DiracILC(withRepo=False) 
@@ -53,6 +34,23 @@ for eventSelection in eventsToSimulate:
     reconstructionVariant = eventSelection['ReconstructionVariant']
     ggHadBackground = eventSelection['ggHadBkg']
     energy = eventSelection['Energy']
+    steeringTemplateFile = eventSelection['SteeringTemplateFile']
+
+    gearFile = 'TemplateSteering/clic_ild_cdr.gear'
+    pandoraSettingsFile = 'PandoraSettings/PandoraSettingsMuon_Photon_fix.xml'
+
+    # Make local pandora settings file
+    os.system('cp ' + pandoraSettingsFile + ' .')
+    pandoraSettingsFileLocal = os.path.basename(pandoraSettingsFile)
+
+    # Make local gear file
+    os.system('cp ' + gearFile + ' .')
+    gearFileLocal = os.path.basename(gearFile)
+
+    # Get content of template
+    base = open(steeringTemplateFile,'r')
+    steeringTemplateContent = base.read()
+    base.close()
 
     slcioFormat = 'MokkaSim_Detector_Model_' + detectorModel + '_' + eventType + '_' + str(energy) + 'GeV_GeneratorSerialNumber_(.*?)_(.*?)_(.*?).slcio'
     slcioFilesToProcess = getSlcioFiles(jobDescription,detectorModel,energy,eventType)
