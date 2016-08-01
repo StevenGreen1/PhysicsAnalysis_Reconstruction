@@ -16,12 +16,8 @@ from Logic.GridTools import *
 
 jobDescription = 'PhysicsAnalysis'
 
-pcla> dirac-ilc-find-in-FC /ilc JobDescription=PhysicsAnalysis Type=Sim DetectorModel=clic_ild_cdr Energy=1400 EvtType=ee_nunuqqqq
-
-
 eventsToSimulate = [
-                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energies': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True}
-#                       { 'EventType': "ee_nunuzz_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energies':  ['1400'] }
+                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True}
                    ]
 
 #===== Second level user input =====
@@ -162,7 +158,7 @@ for eventSelection in eventsToSimulate:
         job.setBannedSites(['LCG.IN2P3-CC.fr','LCG.IN2P3-IRES.fr','LCG.KEK.jp','OSG.PNNL.us','OSG.CIT.us','LCG.LAPP.fr'])
         job.dontPromptMe()
 
-         if ggHadBackground:
+        if ggHadBackground:
             res = job.append(overlay)
 
         res = job.append(ma)
