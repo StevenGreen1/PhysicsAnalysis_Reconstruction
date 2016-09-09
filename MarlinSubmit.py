@@ -17,16 +17,17 @@ from Logic.GridTools import *
 jobDescription = 'PhysicsAnalysis'
 
 eventsToSimulate = [
-                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml'},
-                       { 'EventType': "ee_zz_tautauqq"  , 'EventsPerFile' : 1000 , 'Energy': 350 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr', 'ggHadBkg':False, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering.xml'}
+                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml'}
+#                       { 'EventType': "ee_zz_tautauqq"  , 'EventsPerFile' : 1000 , 'Energy': 350 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr', 'ggHadBkg':False, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering.xml'}
                    ]
 
 ##############
 # Begin
 ##############
-
-# Start submission
 diracInstance = DiracILC(withRepo=False) 
+maxThread = 100
+pool = ActivePool()
+threadingSemaphore = threading.Semaphore(maxThread)
 
 for eventSelection in eventsToSimulate:
     eventType = eventSelection['EventType']
@@ -60,6 +61,36 @@ for eventSelection in eventsToSimulate:
         sys.exit()
 
     for slcioFile in slcioFilesToProcess:
+        while threading.activeCount() > (maxThread * 2):
+            time.sleep(5)
+
+        jobInfo = {}
+        jobInfo['eventType'] = eventType
+        jobInfo['energy'] = energy
+        jobInfo['detectorModel'] = detectorModel
+        jobInfo['reconstructionVariant'] = reconstructionVariant
+        jobInfo['slcioFile'] = slcioFile
+        jobInfo['pandoraSettingsFileLocal'] = pandoraSettingsFileLocal
+        jobInfo['slcioFormat'] = slcioFormat
+        jobInfo['steeringTemplateContent'] = steeringTemplateContent
+        jobInfo['jobDescription'] = jobDescription
+        jobInfo['idx'] = idx
+        jobInfo['gearFileLocal'] = gearFileLocal
+        jobInfo['diracInstance'] = diracInstance
+
+        downloadThread = threading.Thread(target=Worker, name=str(slcioFile), args=(threadingSemaphore, pool, jobInfo))
+        downloadThread.start()
+
+    os.system('rm ' + gearFileLocal)
+    os.system('rm ' + pandoraSettingsFileLocal)
+
+currentThread = threading.currentThread()
+for thread in threading.enumerate():
+    if thread is currentThread:
+        continue
+    thread.join(60)
+
+lemon ="""
         print 'Checking ' + eventType + ' ' + str(energy) + 'GeV jobs.  Detector model ' + detectorModel + '.  Reconstruction stage ' + reconstructionVariant + '.  Slcio file ' + slcioFile + '.'
         slcioFileNoPath = os.path.basename(slcioFile)
 
@@ -153,7 +184,8 @@ for eventSelection in eventsToSimulate:
         job.setOutputSandbox(['*.log','*.gear','*.mac','*.steer','*.xml'])
         job.setOutputData(outputFiles,OutputPath=outputPath) # On grid
         job.setName(jobDetailedName)
-        job.setBannedSites(['LCG.IN2P3-CC.fr','LCG.IN2P3-IRES.fr','LCG.KEK.jp','OSG.PNNL.us','OSG.CIT.us','LCG.LAPP.fr'])
+        job.setBannedSites(['LCG.IN2P3-CC.fr','LCG.IN2P3-IRES.fr','LCG.KEK.jp','OSG.PNNL.us','OSG.CIT.us','LCG.LAPP.fr','LCG.UKI-LT2-IC-HEP.uk','LCG.Tau.il','LCG.Weizmann.il','OSG.BNL.us'])
+        job.setCPUTime(21600) # 6 hour, should be excessive
         job.dontPromptMe()
 
         if ggHadBackground:
@@ -167,6 +199,4 @@ for eventSelection in eventsToSimulate:
         job.submit(diracInstance)
 
 # Tidy Up
-os.system('rm MarlinSteering.steer')
-os.system('rm ' + gearFileLocal)
-os.system('rm ' + pandoraSettingsFileLocal)
+os.system('rm MarlinSteering.steer')"""
