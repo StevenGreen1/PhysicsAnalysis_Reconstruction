@@ -1,8 +1,9 @@
 import os
+import random
 import re
 import sys
-import random
 import threading
+import time
 
 from ILCDIRAC.Interfaces.API.DiracILC import  DiracILC
 from ILCDIRAC.Interfaces.API.NewInterface.UserJob import *
@@ -33,6 +34,7 @@ def SubmitJob(jobInfo):
     idx = jobInfo['idx']
     gearFileLocal = jobInfo['gearFileLocal']
     diracInstance =  jobInfo['diracInstance']
+    ggHadBackground = jobInfo['ggHadBackground']
 
     slcioFileNoPath = os.path.basename(slcioFile)
     inputSandbox = []
@@ -51,7 +53,7 @@ def SubmitJob(jobInfo):
         startEventNumber = matchObj.group(3)
     else:
         print 'Wrong stdhep format.  Please check.'
-        continue
+        return 
 
     #########################
     # Modify Template

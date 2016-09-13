@@ -1,8 +1,9 @@
 # Example to submit Marlin job
 import os
+import random
 import re
 import sys
-import random
+import time 
 
 from DIRAC.Core.Base import Script
 Script.parseCommandLine()
@@ -11,6 +12,7 @@ from ILCDIRAC.Interfaces.API.NewInterface.UserJob import *
 from ILCDIRAC.Interfaces.API.NewInterface.Applications import *
 
 from Logic.GridTools import *
+from Logic.ThreadedTools import *
 
 #===== User Input =====
 
@@ -60,7 +62,7 @@ for eventSelection in eventsToSimulate:
         print 'No slcio files found.  Exiting job submission.'
         sys.exit()
 
-    for slcioFile in slcioFilesToProcess:
+    for idx, slcioFile in enumerate(slcioFilesToProcess):
         while threading.activeCount() > (maxThread * 2):
             time.sleep(5)
 
@@ -77,6 +79,7 @@ for eventSelection in eventsToSimulate:
         jobInfo['idx'] = idx
         jobInfo['gearFileLocal'] = gearFileLocal
         jobInfo['diracInstance'] = diracInstance
+        jobInfo['ggHadBackground'] =  ggHadBackground
 
         downloadThread = threading.Thread(target=Worker, name=str(slcioFile), args=(threadingSemaphore, pool, jobInfo))
         downloadThread.start()
