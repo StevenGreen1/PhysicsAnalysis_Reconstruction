@@ -114,7 +114,7 @@ def SubmitJob(jobInfo):
         if (int)(energy) == 1400:
             overlay.setEnergy(1400.0)
             overlay.setGGToHadInt(1.3) # When running at 1.4TeV
-        elif (int)(energy) == 3000
+        elif (int)(energy) == 3000:
             overlay.setEnergy(3000.0)
             overlay.setGGToHadInt(3.2) # When running at 3TeV
         else:
