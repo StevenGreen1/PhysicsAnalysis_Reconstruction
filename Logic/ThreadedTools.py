@@ -35,6 +35,7 @@ def SubmitJob(jobInfo):
     gearFileLocal = jobInfo['gearFileLocal']
     diracInstance =  jobInfo['diracInstance']
     ggHadBackground = jobInfo['ggHadBackground']
+    eventsPerFile = jobInfo['eventsPerFile']
 
     slcioFileNoPath = os.path.basename(slcioFile)
     inputSandbox = []
@@ -106,14 +107,19 @@ def SubmitJob(jobInfo):
     # Setup Overlay Information
     #########################
     overlay = OverlayInput()
-    overlay.setMachine('clic_cdr')
-    overlay.setEnergy(1400.0)
-    overlay.setBXOverlay(60)
-    #overlay.setGGToHadInt(3.2) # When running at 3TeV
-    overlay.setGGToHadInt(1.3) # When running at 1.4TeV
-    overlay.setDetectorModel('CLIC_ILD_CDR')
-    overlay.setNbSigEvtsPerJob(100)
-    overlay.setBackgroundType('gghad')
+    if ggHadBackground:
+        overlay.setMachine('clic_cdr')
+        overlay.setBXOverlay(60)
+        overlay.setNbSigEvtsPerJob((int)(eventsPerFile))
+        if (int)(energy) == 1400:
+            overlay.setEnergy(1400.0)
+            overlay.setGGToHadInt(1.3) # When running at 1.4TeV
+        elif (int)(energy) == 3000
+            overlay.setEnergy(3000.0)
+            overlay.setGGToHadInt(3.2) # When running at 3TeV
+        else:
+        overlay.setDetectorModel('CLIC_ILD_CDR')
+        overlay.setBackgroundType('gghad')
 
     #########################
     # Submit Job

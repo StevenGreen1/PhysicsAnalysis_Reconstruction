@@ -19,7 +19,8 @@ from Logic.ThreadedTools import *
 jobDescription = 'PhysicsAnalysis'
 
 eventsToSimulate = [
-                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml'}
+                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 100 , 'Energy': 3000 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering_overlay_3000.0.xml'}
+#                       { 'EventType': "ee_nunuqqqq"  , 'EventsPerFile' : 1000 , 'Energy': 1400 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr_ggHadBkg', 'ggHadBkg':True, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering_overlay_1400.0.xml'}
 #                       { 'EventType': "ee_zz_tautauqq"  , 'EventsPerFile' : 1000 , 'Energy': 350 , 'DetectorModel':'clic_ild_cdr', 'ReconstructionVariant':'clic_ild_cdr', 'ggHadBkg':False, 'SteeringTemplateFile':'TemplateSteering/clic_ild_cdr_steering.xml'}
                    ]
 
@@ -38,6 +39,7 @@ for eventSelection in eventsToSimulate:
     ggHadBackground = eventSelection['ggHadBkg']
     energy = eventSelection['Energy']
     steeringTemplateFile = eventSelection['SteeringTemplateFile']
+    eventsPerFile = eventSelection['EventsPerFile']
 
     gearFile = 'TemplateSteering/clic_ild_cdr.gear'
     pandoraSettingsFile = 'PandoraSettings/PandoraSettingsMuon_Photon_fix.xml'
@@ -80,6 +82,7 @@ for eventSelection in eventsToSimulate:
         jobInfo['gearFileLocal'] = gearFileLocal
         jobInfo['diracInstance'] = diracInstance
         jobInfo['ggHadBackground'] =  ggHadBackground
+        jobInfo['eventsPerFile'] =  eventsPerFile
 
         downloadThread = threading.Thread(target=Worker, name=str(slcioFile), args=(threadingSemaphore, pool, jobInfo))
         downloadThread.start()
