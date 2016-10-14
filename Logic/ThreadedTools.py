@@ -110,6 +110,9 @@ def SubmitJob(jobInfo):
     if ggHadBackground:
         overlay.setMachine('clic_cdr')
         overlay.setBXOverlay(60)
+        overlay.setDetectorModel('CLIC_ILD_CDR')
+        overlay.setBackgroundType('gghad')
+
         overlay.setNbSigEvtsPerJob((int)(eventsPerFile))
         if (int)(energy) == 1400:
             overlay.setEnergy(1400.0)
@@ -118,8 +121,8 @@ def SubmitJob(jobInfo):
             overlay.setEnergy(3000.0)
             overlay.setGGToHadInt(3.2) # When running at 3TeV
         else:
-        overlay.setDetectorModel('CLIC_ILD_CDR')
-        overlay.setBackgroundType('gghad')
+            print 'Unknown number of GGHadToInts to use for this energy.  Exiting job subission.'
+            return 
 
     #########################
     # Submit Job
